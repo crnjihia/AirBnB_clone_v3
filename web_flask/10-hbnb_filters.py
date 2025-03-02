@@ -1,37 +1,30 @@
 #!/usr/bin/python3
 """
-Flask web application that displays a page with filters
-for states, cities, and amenities.
+    Sript that starts a Flask web application
 """
 from flask import Flask, render_template
 from models import storage
-from models.state import State
-from models.amenity import Amenity
-
+import os
 app = Flask(__name__)
 
 
-@app.route('/hbnb_filters', strict_slashes=False)
-def hbnb_filters():
+def handle_teardown(self):
     """
-    Display a HTML page with filters for states, cities, and amenities.
-    """
-    states = storage.all(State).values()
-    sorted_states = sorted(states, key=lambda state: state.name)
-    amenities = storage.all(Amenity).values()
-    sorted_amenities = sorted(amenities, key=lambda amenity: amenity.name)
-    return render_template('10-hbnb_filters.html',
-                           states=sorted_states,
-                           amenities=sorted_amenities)
-
-
-@app.teardown_appcontext
-def teardown_db(exception):
-    """
-    Remove the current SQLAlchemy Session after each request.
+        method to handle teardown
     """
     storage.close()
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@app.route('/hbnb_filters', strict_slashes=False)
+def filters_list():
+    """
+        method to display html page 6-index.html
+    """
+    states = storage.all('State').values()
+    amenities = storage.all('Amenity').values()
+    return render_template(
+        "10-hbnb_filters.html",
+        states=states, amenities=amenities)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

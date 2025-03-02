@@ -1,109 +1,57 @@
 #!/usr/bin/python3
-'''Defines RESTful API actions for State objects.'''
-from flask import jsonify, request, abort
-from models import storage
-from models.state import State
+"""
+Flask route that returns json status response
+"""
 from api.v1.views import app_views
+from flask import abort, jsonify, make_response, request
+from flasgger import Swagger, swag_from
+from models import storage, CNC
 
 
 @app_views.route('/states', methods=['GET', 'POST'])
-@app_views.route('/states/<state_id>', methods=['GET', 'DELETE', 'PUT'])
-def handle_states(state_id=None):
-    '''Handles all default RESTful API actions for State objects.
-
-    Args:
-        state_id (str, optional): The ID of the State. Defaults to None.
-
-    Returns:
-        Response: JSON response or error message.
-    '''
+@swag_from('swagger_yaml/states_no_id.yml', methods=['GET', 'POST'])
+def states_no_id():
+    """
+        states route to handle http method for requested states no id provided
+    """
     if request.method == 'GET':
-        return get_state(state_id) if state_id else get_all_states()
-    elif request.method == 'DELETE':
-        return delete_state(state_id)
-    elif request.method == 'POST':
-        return create_state()
-    elif request.method == 'PUT':
-        return update_state(state_id)
-    else:
-        abort(405)  # Method Not Allowed
+        all_states = storage.all('State')
+        all_states = list(obj.to_json() for obj in all_states.values())
+        return jsonify(all_states)
+
+    if request.method == 'POST':
+        req_json = request.get_json()
+        if req_json is None:
+            abort(400, 'Not a JSON')
+        if req_json.get("name") is None:
+            abort(400, 'Missing name')
+        State = CNC.get("State")
+        new_object = State(**req_json)
+        new_object.save()
+        return jsonify(new_object.to_json()), 201
 
 
-def get_all_states():
-    '''Retrieves a list of all State objects.
+@app_views.route('/states/<state_id>', methods=['GET', 'DELETE', 'PUT'])
+@swag_from('swagger_yaml/states_id.yml', methods=['PUT', 'GET', 'DELETE'])
+def states_with_id(state_id=None):
+    """
+        states route to handle http method for requested state by id
+    """
+    state_obj = storage.get('State', state_id)
+    if state_obj is None:
+        abort(404, 'Not found')
 
-    Returns:
-        Response: JSON list of all State objects.
-    '''
-    states = storage.all(State).values()
-    return jsonify([state.to_dict() for state in states])
+    if request.method == 'GET':
+        return jsonify(state_obj.to_json())
 
+    if request.method == 'DELETE':
+        state_obj.delete()
+        del state_obj
+        return jsonify({})
 
-def get_state(state_id):
-    '''Retrieves a specific State object by ID.
-
-    Args:
-        state_id (str): The ID of the State.
-
-    Returns:
-        Response: JSON representation of the State or 404 error.
-    '''
-    state = storage.get(State, state_id)
-    if not state:
-        abort(404, description="State not found")
-    return jsonify(state.to_dict())
-
-
-def delete_state(state_id):
-    '''Deletes a specific State object by ID.
-
-    Args:
-        state_id (str): The ID of the State.
-
-    Returns:
-        Response: Empty dictionary with status code 200 or 404 error.
-    '''
-    state = storage.get(State, state_id)
-    if not state:
-        abort(404, description="State not found")
-    storage.delete(state)
-    storage.save()
-    return jsonify({}), 200
-
-
-def create_state():
-    '''Creates a new State object.
-
-    Returns:
-        Response: JSON representation of the new State with status code 201.
-    '''
-    data = request.get_json()
-    if not data:
-        abort(400, description="Not a JSON")
-    if 'name' not in data:
-        abort(400, description="Missing name")
-    new_state = State(**data)
-    new_state.save()
-    return jsonify(new_state.to_dict()), 201
-
-
-def update_state(state_id):
-    '''Updates a specific State object by ID.
-
-    Args:
-        state_id (str): The ID of the State.
-
-    Returns:
-        Response: JSON representation of the updated State or 404 error.
-    '''
-    state = storage.get(State, state_id)
-    if not state:
-        abort(404, description="State not found")
-    data = request.get_json()
-    if not data:
-        abort(400, description="Not a JSON")
-    for key, value in data.items():
-        if key not in ['id', 'created_at', 'updated_at']:
-            setattr(state, key, value)
-    state.save()
-    return jsonify(state.to_dict()), 200
+    if request.method == 'PUT':
+        req_json = request.get_json()
+        if req_json is None:
+            abort(400, 'Not a JSON')
+        state_obj.bm_update(req_json)
+        return jsonify(state_obj.to_json())

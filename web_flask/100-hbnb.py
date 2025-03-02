@@ -1,41 +1,46 @@
 #!/usr/bin/python3
 """
-Flask web application that displays a page with filters
-for states, cities, amenities, and places.
+Flask App that integrates with AirBnB static HTML Template
 """
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from models import storage
-from models.state import State
-from models.amenity import Amenity
-from models.place import Place
 
+
+# flask setup
 app = Flask(__name__)
+app.url_map.strict_slashes = False
+port = 5000
+host = '0.0.0.0'
 
 
-@app.route('/hbnb', strict_slashes=False)
-def hbnb():
-    """
-    Display a HTML page with filters for states, cities, amenities, and places.
-    """
-    states = storage.all(State).values()
-    sorted_states = sorted(states, key=lambda state: state.name)
-    amenities = storage.all(Amenity).values()
-    sorted_amenities = sorted(amenities, key=lambda amenity: amenity.name)
-    places = storage.all(Place).values()
-    sorted_places = sorted(places, key=lambda place: place.name)
-    return render_template('100-hbnb.html',
-                           states=sorted_states,
-                           amenities=sorted_amenities,
-                           places=sorted_places)
-
-
+# begin flask page rendering
 @app.teardown_appcontext
 def teardown_db(exception):
     """
-    Remove the current SQLAlchemy Session after each request.
+    after each request, this method calls .close() (i.e. .remove()) on
+    the current SQLAlchemy Session
     """
     storage.close()
 
 
+@app.route('/hbnb')
+def hbnb_filters(the_id=None):
+    """
+    handles request to custom template with states, cities & amentities
+    """
+    state_objs = storage.all('State').values()
+    states = dict([state.name, state] for state in state_objs)
+    amens = storage.all('Amenity').values()
+    places = storage.all('Place').values()
+    users = dict([user.id, "{} {}".format(user.first_name, user.last_name)]
+                 for user in storage.all('User').values())
+    return render_template('100-hbnb.html',
+                           states=states,
+                           amens=amens,
+                           places=places,
+                           users=users)
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    """
+    MAIN Flask App"""
+    app.run(host=host, port=port)

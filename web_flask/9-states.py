@@ -1,49 +1,48 @@
 #!/usr/bin/python3
 """
-Flask web application that displays a list of states and details about a
-specific state.
+    Sript that starts a Flask web application
 """
 from flask import Flask, render_template
 from models import storage
-from models.state import State
-
+import os
 app = Flask(__name__)
 
 
-@app.route('/states', strict_slashes=False)
-def states():
-    """
-    Display an HTML page with a list of all states.
-    """
-    states = storage.all(State).values()
-    sorted_states = sorted(states, key=lambda state: state.name)
-    return render_template('9-states.html', states=sorted_states)
-
-
-@app.route('/states/<id>', strict_slashes=False)
-def state_by_id(id):
-    """
-    Display an HTML page with details about a specific state and its cities.
-    """
-    state = storage.get(State, id)
-    if state:
-        sorted_cities = sorted(state.cities, key=lambda city: city.name)
-        return render_template(
-            '9-states.html',
-            state=state,
-            cities=sorted_cities
-        )
-    else:
-        return render_template('9-states.html', not_found=True)
-
-
 @app.teardown_appcontext
-def teardown_db(exception):
+def handle_teardown(self):
     """
-    Remove the current SQLAlchemy Session after each request.
+        method to handle teardown
     """
     storage.close()
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+@app.route('/states', strict_slashes=False)
+def state_list():
+    """
+        method to render states
+    """
+    states = storage.all('State').values()
+    return render_template(
+        "9-states.html",
+        states=states,
+        condition="states_list")
+
+
+@app.route('/states/<id>', strict_slashes=False)
+def states_id(id):
+    """
+        method to render state ids
+    """
+    state_all = storage.all('State')
+    try:
+        state_id = state_all[id]
+        return render_template(
+            '9-states.html',
+            state_id=state_id,
+            condition="state_id")
+    except:
+        return render_template('9-states.html', condition="not_found")
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

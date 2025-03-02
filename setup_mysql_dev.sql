@@ -1,22 +1,7 @@
--- Script to set up MySQL server for development
--- Creates database hbnb_dev_db and user hbnb_dev
-
--- Create database if it doesn't exist
+-- Creates database hbnb_dev_db
 CREATE DATABASE IF NOT EXISTS hbnb_dev_db;
-
--- Create new user if it doesn't exist
-CREATE USER IF NOT EXISTS 'hbnb_dev'@'localhost'
-IDENTIFIED BY 'hbnb_dev_pwd';
-
--- Grant all privileges on hbnb_dev_db to hbnb_dev
-GRANT ALL PRIVILEGES
-ON hbnb_dev_db.*
-TO 'hbnb_dev'@'localhost';
-
--- Grant select privilege on performance_schema to hbnb_dev
-GRANT SELECT
-ON performance_schema.*
-TO 'hbnb_dev'@'localhost';
-
--- Apply the new privileges
-FLUSH PRIVILEGES;
+USE hbnb_dev_db;
+CREATE USER IF NOT EXISTS 'hbnb_dev'@'localhost';
+SET PASSWORD FOR 'hbnb_dev'@'localhost' = 'hbnb_dev_pwd';
+GRANT ALL PRIVILEGES ON hbnb_dev_db.* TO 'hbnb_dev'@'localhost';
+GRANT SELECT ON performance_schema.* TO 'hbnb_dev'@'localhost';
